@@ -1,0 +1,36 @@
+from pydantic import BaseModel, EmailStr, ConfigDict
+from models.enums import RolUsuario
+from typing import Optional
+
+class UsuarioCreate(BaseModel):
+    email: EmailStr # EmailStr valida automáticamente que tenga un @ y un formato de correo
+    password: str
+    rol: RolUsuario = RolUsuario.LEAD_WEB # Por defecto, el nivel más bajo
+
+class UsuarioResponse(BaseModel):
+    id: int
+    email: str
+    rol: RolUsuario
+    es_activo: bool
+
+    class Config:
+        from_attributes = True # Permite leer objetos de SQLAlchemy
+
+class UsuarioUpdate(BaseModel):
+    is_active: Optional[bool] = None
+    rol: Optional[RolUsuario] = None
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+
+class UsuarioBasico(BaseModel):
+    id: int
+    email: str
+    rol: RolUsuario
+    
+    model_config = ConfigDict(from_attributes=True)
