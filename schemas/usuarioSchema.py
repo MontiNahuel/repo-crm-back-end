@@ -12,6 +12,8 @@ class UsuarioResponse(BaseModel):
     email: str
     rol: RolUsuario
     es_activo: bool
+    nombre: str
+    apellido: str
 
     class Config:
         from_attributes = True # Permite leer objetos de SQLAlchemy

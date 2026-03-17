@@ -37,7 +37,9 @@ def login(credenciales: OAuth2PasswordRequestForm = Depends(), servicio: Usuario
     datos_token = {
         "sub": str(usuario.id),
         "email": usuario.email,
-        "rol": usuario.rol.value
+        "rol": usuario.rol.value,
+        "nombre": usuario.nombre,
+        "apellido": usuario.apellido
     }
 
     token_acceso = crear_token_acceso(datos_token)
