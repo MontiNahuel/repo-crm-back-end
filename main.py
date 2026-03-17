@@ -1,7 +1,9 @@
 import controllers.ControllerTarea
 from fastapi import FastAPI
+import socketio
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
+from core.socketManager import sio
 
 # IMPORTANTE: Debemos importar los modelos antes de llamar a create_all
 # para que SQLAlchemy sepa qué tablas debe crear.
@@ -24,6 +26,8 @@ app = FastAPI(
     description="API robusta para gestión de stock",
     version="1.0.0"
 )
+
+app_con_socket = socketio.ASGIApp(sio, other_asgi_app=app)
 
 # Registramos el controlador de productos
 app.include_router(ControllerProducts.router)
