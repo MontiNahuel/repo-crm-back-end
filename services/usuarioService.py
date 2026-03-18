@@ -22,7 +22,9 @@ class UsuarioService:
         nuevo_usuario = UsuarioCreate(
             email=usuario_in.email,
             password=hash_pass,
-            rol=usuario_in.rol
+            rol=usuario_in.rol,
+            nombre=usuario_in.nombre,
+            apellido=usuario_in.apellido
         )
         
         return self.repo_usuario.create(nuevo_usuario)

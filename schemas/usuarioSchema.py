@@ -5,7 +5,9 @@ from typing import Optional
 class UsuarioCreate(BaseModel):
     email: EmailStr # EmailStr valida automáticamente que tenga un @ y un formato de correo
     password: str
-    rol: RolUsuario = RolUsuario.LEAD_WEB # Por defecto, el nivel más bajo
+    rol: RolUsuario
+    nombre: str
+    apellido: str
 
 class UsuarioResponse(BaseModel):
     id: int
