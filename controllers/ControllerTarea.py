@@ -33,6 +33,17 @@ def crear_tarea_cliente(
 ):
     return service.create_tarea_cliente_vendedor(usuario_actual.id, tarea_in)
 
+@router.get("/cliente/{cliente_id}", response_model=List[TareaClienteRead])
+def listar_tareas_cliente(
+    cliente_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    pendientes_solo: bool = False,
+    usuario_actual: Usuario = Depends(obtener_usuario_actual),
+    service: TareaService = Depends()
+):
+    return service.get_by_cliente(cliente_id, usuario_actual.id, skip, limit, pendientes_solo)
+
 @router.put("/{tarea_id}/completar", response_model=TareaRead)
 def completar_tarea(
     tarea_id: int,

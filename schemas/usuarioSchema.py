@@ -36,5 +36,7 @@ class UsuarioBasico(BaseModel):
     id: int
     email: str
     rol: RolUsuario
+    nombre: str
+    apellido: str
     
     model_config = ConfigDict(from_attributes=True)

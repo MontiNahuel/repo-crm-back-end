@@ -48,3 +48,6 @@ class TareaService:
         if not tarea or tarea.usuario_id != usuario_id:
             raise HTTPException(status_code=404, detail="Tarea no encontrada")
         return self.tarea_repo.update(tarea_id, schema.model_dump(exclude_unset=True))
+
+    def get_by_cliente(self, cliente_id: int, usuario_actual_id: int, skip: int = 0, limit: int = 100, pendientes_solo: bool = False):
+        return self.tarea_cliente_repo.get_by_cliente(cliente_id, usuario_actual_id, skip, limit, pendientes_solo)

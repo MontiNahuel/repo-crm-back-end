@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException
 from repositories.RepositoryNotas import NotaClienteRepository, NotaProductoRepository
 from sqlalchemy.exc import IntegrityError
-from schemas.notasSchema import NotaClienteCreate, NotaProductoCreate
+from schemas.notasSchema import NotaClienteCreate, NotaClienteCreateDB
 
 from services.clienteService import ClienteService
 
@@ -16,10 +16,11 @@ class NotasService:
         self.repo_nota_producto = repo_nota_producto
         self.servicio_cliente = servicio_cliente
 
-    def crear_nota_cliente(self, nota_in: NotaClienteCreate):
+    def crear_nota_cliente(self, nota_in: NotaClienteCreate, usuario_id: int):
         self.servicio_cliente.obtener_cliente(cliente_id=nota_in.cliente_id)
         try:
-            return self.repo_nota_cliente.create(obj_in=nota_in)
+            nota_db = NotaClienteCreateDB(**nota_in.model_dump(), usuario_id=usuario_id)
+            return self.repo_nota_cliente.create(obj_in=nota_db)
         except IntegrityError as e:
             self.repo_nota_cliente.db.rollback() 
             raise HTTPException(
@@ -28,6 +29,7 @@ class NotasService:
             )
         except Exception as e:
             self.repo_nota_cliente.db.rollback()
+            print(f"🚨 ERROR CRÍTICO AL CREAR NOTA: {repr(e)}")
             raise HTTPException(status_code=500, detail="Error interno al procesar la nota")
 
     def eliminar_nota_cliente(self, cliente_id: int):
@@ -42,6 +44,8 @@ class NotasService:
     def obtener_notas_cliente(self, cliente_id: int):
         return self.repo_nota_cliente.get_all_by_cliente_id(cliente_id=cliente_id)
 
+    def obtener_notas_propias_cliente(self, cliente_id: int, usuario_id: int):
+        return self.repo_nota_cliente.get_all_by_cliente_id_and_usuario_id(cliente_id=cliente_id, usuario_id=usuario_id)
 
     def crear_nota_producto(self, nota_in):
         # Aquí podrías agregar lógica de negocio específica para notas de producto
