@@ -70,6 +70,7 @@ uvicorn main:app_con_socket --reload
 
 La API estará corriendo en http://localhost:8000.
 Puedes acceder a la documentación interactiva (Swagger) en http://localhost:8000/docs.
+
 ---
 
 ⌨️ Desarrollado por **[Nahuel Monti](https://montinahuel.github.io/portafilioV6/)** - *Full Stack Developer*
