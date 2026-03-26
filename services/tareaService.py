@@ -51,3 +51,13 @@ class TareaService:
 
     def get_by_cliente(self, cliente_id: int, usuario_actual_id: int, skip: int = 0, limit: int = 100, pendientes_solo: bool = False):
         return self.tarea_cliente_repo.get_by_cliente(cliente_id, usuario_actual_id, skip, limit, pendientes_solo)
+
+    def crear_conjunto_de_tareas(self, usuario_id: int, tareas: List[dict], cliente_id: int = None):
+        tareas_creadas = []
+        for tarea in tareas:
+            if cliente_id:
+                self.create_tarea_cliente_vendedor(usuario_id, TareaClienteCreate(**tarea, cliente_id=cliente_id))
+            else:
+                self.create_tarea_vendedor(usuario_id, TareaCreate(**tarea))
+            tareas_creadas.append(tarea)
+        return tareas_creadas

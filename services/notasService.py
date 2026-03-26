@@ -47,6 +47,12 @@ class NotasService:
     def obtener_notas_propias_cliente(self, cliente_id: int, usuario_id: int):
         return self.repo_nota_cliente.get_all_by_cliente_id_and_usuario_id(cliente_id=cliente_id, usuario_id=usuario_id)
 
+    def obtener_nota_por_id(self, nota_id: int):
+        nota = self.repo_nota_cliente.get(id=nota_id)
+        if not nota:
+            raise HTTPException(status_code=404, detail="Nota de cliente no encontrada")
+        return nota
+
     def crear_nota_producto(self, nota_in):
         # Aquí podrías agregar lógica de negocio específica para notas de producto
         return self.repo_nota_producto.create(obj_in=nota_in)

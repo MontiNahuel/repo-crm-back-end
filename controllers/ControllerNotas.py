@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends
 from typing import List
 from schemas.notasSchema import NotaClienteCreate, NotaClienteResponse, NotaProductoCreate, NotaProductoResponse
 from services.notasService import NotasService
+from services.aiService import AiService
+from services.tareaService import TareaService
 from core.dependencias import obtener_usuario_actual
 from models.usuario import Usuario
 
@@ -31,3 +33,19 @@ def listar_notas_de_un_cliente(cliente_id: int, servicio: NotasService = Depends
 def listar_notas_propias_de_un_cliente(cliente_id: int, servicio: NotasService = Depends(), usuario_actual: Usuario = Depends(obtener_usuario_actual)):
     notas = servicio.obtener_notas_propias_cliente(cliente_id=cliente_id, usuario_id=usuario_actual.id)
     return notas
+
+@router.post("/analizar-tarea/{nota_id}", response_model=List[dict])
+def analizar_tarea_con_ia(
+    nota_id: int, 
+    servicio: NotasService = Depends(),
+    ai_servicio: AiService = Depends(),
+    tarea_servicio: TareaService = Depends(),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual)
+):
+    """
+    Envía un texto a la IA y devuelve una lista de tareas estructuradas.
+    """
+    texto = servicio.obtener_nota_por_id(nota_id)
+    tareas = ai_servicio.extraer_tareas_de_nota(texto.contenido)
+    return tarea_servicio.crear_conjunto_de_tareas(usuario_actual.id, tareas, texto.cliente_id)
+
