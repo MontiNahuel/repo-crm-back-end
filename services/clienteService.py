@@ -56,7 +56,21 @@ class ClienteService:
     def obtener_cambiosClientes(self, usuario_id: int, skip: int = 0, limit: int = 100):
         return self.repo.obtener_cambiosClientes(usuario_id, skip=skip, limit=limit)
 
-    def obtener_clientes_por_usuario(self, usuario_id: int, skip: int = 0, limit: int = 100, busqueda: str = None):
-        cantidadClientes = self.repo.count_by_user(usuario_id)
-        clientes = self.repo.obtener_clientes_por_id_usuario(usuario_id, skip=skip, limit=limit, busqueda=busqueda)
+    def obtener_clientes_por_usuario(
+        self, 
+        usuario_id: int, 
+        skip: int = 0, 
+        limit: int = 100, 
+        busqueda: str = None,
+        filtroEstado: str = None,
+        orden: str = None
+        ):
+        cantidadClientes, clientes = self.repo.obtener_clientes_por_id_usuario(
+            usuario_id, 
+            skip=skip, 
+            limit=limit, 
+            busqueda=busqueda, 
+            filtroEstado=filtroEstado, 
+            orden=orden
+            )
         return {"cantidadClientes": cantidadClientes, "clientes": clientes}

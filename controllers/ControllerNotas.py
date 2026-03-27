@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from typing import List
 from schemas.notasSchema import NotaClienteCreate, NotaClienteResponse, NotaProductoCreate, NotaProductoResponse
+from schemas.tareaSchema import TareaClienteRead
 from services.notasService import NotasService
 from services.aiService import AiService
 from services.tareaService import TareaService
@@ -34,7 +35,7 @@ def listar_notas_propias_de_un_cliente(cliente_id: int, servicio: NotasService =
     notas = servicio.obtener_notas_propias_cliente(cliente_id=cliente_id, usuario_id=usuario_actual.id)
     return notas
 
-@router.post("/analizar-tarea/{nota_id}", response_model=List[dict])
+@router.post("/analizar-tarea/{nota_id}", response_model=List[TareaClienteRead])
 def analizar_tarea_con_ia(
     nota_id: int, 
     servicio: NotasService = Depends(),
@@ -49,3 +50,16 @@ def analizar_tarea_con_ia(
     tareas = ai_servicio.extraer_tareas_de_nota(texto.contenido)
     return tarea_servicio.crear_conjunto_de_tareas(usuario_actual.id, tareas, texto.cliente_id)
 
+
+@router.delete("/{nota_id}", status_code=200)
+def eliminar_nota_cliente(
+    nota_id: int, 
+    servicio: NotasService = Depends(),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual)
+):
+    """
+    Elimina una nota de cliente existente por su ID.
+    Solo el creador de la nota puede eliminarla.
+    """
+    servicio.eliminar_nota_cliente(nota_id, usuario_actual.id)
+    return {"mensaje": "Nota eliminada con éxito", "id": nota_id}

@@ -44,7 +44,7 @@ class ClienteRepository(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
     def count_by_user(self, usuario_id: int):
         return self.db.query(Cliente).filter(Cliente.usuario_id == usuario_id).count()
     
-    def obtener_clientes_por_id_usuario(self, usuario_id: int, skip: int = 0, limit: int = 100, busqueda : str = None):
+    def obtener_clientes_por_id_usuario(self, usuario_id: int, skip: int = 0, limit: int = 100, busqueda : str = None, filtroEstado: str = None, orden: str = None):
         query = self.db.query(Cliente).filter(Cliente.usuario_id == usuario_id)
         if busqueda:
             query = query.filter(
@@ -53,10 +53,19 @@ class ClienteRepository(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
                     Cliente.email.ilike(f"%{busqueda}%")
                 )
             )
-        return query.offset(skip).limit(limit).all()
+        if filtroEstado:
+            query = query.filter(Cliente.estado == filtroEstado)
+        if orden:
+            if orden == "asc":
+                query = query.order_by(Cliente.creado_en.asc())
+            else:
+                query = query.order_by(Cliente.creado_en.desc())
+        total = query.count()
+        clientes = query.offset(skip).limit(limit).all()
+        return total, clientes
 
     def obtener_cambiosClientes(self, usuario_id: int, skip: int = 0, limit: int = 100):
-        return self.db.query(CambioCliente).filter(CambioCliente.usuario_id == usuario_id).offset(skip).limit(limit).all()
+        return self.db.query(CambioCliente).filter(CambioCliente.usuario_id == usuario_id).order_by(CambioCliente.fecha.desc()).offset(skip).limit(limit).all()
 
     def get_conteo_por_estado(self, usuario_id: int):
         """

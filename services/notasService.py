@@ -32,11 +32,13 @@ class NotasService:
             print(f"🚨 ERROR CRÍTICO AL CREAR NOTA: {repr(e)}")
             raise HTTPException(status_code=500, detail="Error interno al procesar la nota")
 
-    def eliminar_nota_cliente(self, cliente_id: int):
-        nota = self.repo_nota_cliente.get(id=cliente_id)
+    def eliminar_nota_cliente(self, nota_id: int, usuario_id: int):
+        nota = self.repo_nota_cliente.get(id=nota_id)
         if not nota:
             raise HTTPException(status_code=404, detail="Nota de cliente no encontrada")
-        return self.repo_nota_cliente.delete(id=cliente_id)
+        if nota.usuario_id != usuario_id:
+            raise HTTPException(status_code=403, detail="No tienes permisos para eliminar esta nota")
+        return self.repo_nota_cliente.delete(id=nota_id)
     
 #    def obtener_notas(self, skip: int = 0, limit: int = 100):
 #        return self.repo_nota_cliente.get_all(skip=skip, limit=limit)
@@ -57,8 +59,8 @@ class NotasService:
         # Aquí podrías agregar lógica de negocio específica para notas de producto
         return self.repo_nota_producto.create(obj_in=nota_in)
     
-    def eliminar_nota_producto(self, producto_id: int):
-        nota = self.repo_nota_producto.get(id=producto_id)
+    def eliminar_nota_producto(self, nota_id: int):
+        nota = self.repo_nota_producto.get(id=nota_id)
         if not nota:
             raise HTTPException(status_code=404, detail="Nota de producto no encontrada")
-        return self.repo_nota_producto.delete(id=producto_id)
+        return self.repo_nota_producto.delete(id=nota_id)

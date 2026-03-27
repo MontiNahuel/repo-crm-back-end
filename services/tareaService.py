@@ -56,8 +56,8 @@ class TareaService:
         tareas_creadas = []
         for tarea in tareas:
             if cliente_id:
-                self.create_tarea_cliente_vendedor(usuario_id, TareaClienteCreate(**tarea, cliente_id=cliente_id))
+                tarea_db = self.create_tarea_cliente_vendedor(usuario_id, TareaClienteCreate(**tarea, cliente_id=cliente_id))
             else:
-                self.create_tarea_vendedor(usuario_id, TareaCreate(**tarea))
-            tareas_creadas.append(tarea)
+                tarea_db = self.create_tarea_vendedor(usuario_id, TareaCreate(**tarea))
+            tareas_creadas.append(tarea_db)
         return tareas_creadas
