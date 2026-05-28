@@ -3,11 +3,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
 
-# Cambia 'root' y 'tu_password' por tus credenciales locales de MySQL
-# Formato: mysql+driver://usuario:password@host:puerto/nombre_bd
-load_dotenv() # Carga tu archivo .env oculto
-#URL_BASE_DATOS = os.getenv("DATABASE_URL", "mysql+pymysql://root:root@localhost:3306/inventario")
-URL_BASE_DATOS = "mysql+pymysql://root:root@localhost:3306/inventario_db"
+# Carga tu archivo .env oculto
+load_dotenv()
+
+# La URL de conexión se lee del .env (nunca hardcodeada en el código fuente)
+URL_BASE_DATOS = os.getenv("DATABASE_URL", "mysql+pymysql://root:root@localhost:3306/inventario_db")
 
 # El motor que gestiona las conexiones
 engine = create_engine(URL_BASE_DATOS)

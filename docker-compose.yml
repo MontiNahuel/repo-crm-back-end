@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # SERVICIO MYSQL: Datos Relacionales (CRM principal)
+  # ==========================================
+  mysql_db:
+    image: mysql:8.0
+    container_name: crm_mysql_container
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: inventario_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_persistent_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+
+  # ==========================================
+  # SERVICIO MONGODB: Mensajería NoSQL (Bucket Pattern Chat)
+  # ==========================================
+  mongo_db:
+    image: mongo:latest
+    container_name: crm_mongo_container
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_persistent_data:/data/db
+
+# ==========================================
+# VOLÚMENES PERSISTENTES (Evitan pérdida de datos)
+# ==========================================
+volumes:
+  mysql_persistent_data:
+  mongo_persistent_data:
