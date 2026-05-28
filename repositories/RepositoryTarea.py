@@ -12,11 +12,6 @@ class TareaRepository(CRUDBase[Tarea, TareaCreate, TareaUpdate]):
 
     # AQUÍ AGREGAMOS EL FILTRO POR USUARIO (Fundamental para el CRM)
     def get_by_user(self, usuario_id: int, skip: int = 0, limit: int = 100, pendientes_solo: bool = False):
-        """
-        return self.db.query(self.model)\
-            .filter(self.model.usuario_id == usuario_id)\
-            .offset(skip).limit(limit).all()
-        """
         query = self.db.query(self.model).filter(self.model.usuario_id == usuario_id)
         if pendientes_solo:
             query = query.filter(self.model.esta_completada == False)
@@ -26,16 +21,6 @@ class TareaRepository(CRUDBase[Tarea, TareaCreate, TareaUpdate]):
             self.model.fecha_creacion.desc()    # Si no tienen límite, las más nuevas primero
         )
         return query.offset(skip).limit(limit).all()
-    
-    def update(self, id: int, update_data: dict):
-        db_obj = self.get(id)
-        if not db_obj:
-            return None
-        for field, value in update_data.items():
-            setattr(db_obj, field, value)
-        self.db.commit()
-        self.db.refresh(db_obj)
-        return db_obj
 
 class TareaClienteRepository(CRUDBase[TareaCliente, TareaClienteCreate, TareaClienteUpdate]):
     def __init__(self, db: Session = Depends(get_db)):
@@ -50,7 +35,4 @@ class TareaClienteRepository(CRUDBase[TareaCliente, TareaClienteCreate, TareaCli
             self.model.fecha_limite.asc(),      # Ordenadas de más próxima a más lejana
             self.model.fecha_creacion.desc()    # Si no tienen límite, las más nuevas primero
         )
-        return query.offset(skip).limit(limit).all()
-
-tarea_repo = TareaRepository()
-tarea_cliente_repo = TareaClienteRepository()
+        return query.offset(skip).limit(limit).all()

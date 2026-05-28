@@ -50,3 +50,9 @@ class UsuarioService:
             raise HTTPException(status_code=401, detail="Credenciales inválidas")
         
         return usuario
+
+    def obtener_directorio_colaboradores(self, busqueda: str = None):
+        """
+        Retorna la lista de colaboradores activos del CRM.
+        """
+        return self.repo_usuario.obtener_colaboradores(busqueda=busqueda)
