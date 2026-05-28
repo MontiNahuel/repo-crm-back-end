@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from database import Base
 
 class CambioCliente(Base):
-    __tablename__ = "cambiosClientes"
+    __tablename__ = "cambiosclientes"
     
     id = Column(Integer, primary_key=True, index=True)
     cliente_id = Column(Integer, ForeignKey("clientes.id"), nullable=False)

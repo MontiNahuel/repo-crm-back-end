@@ -78,7 +78,4 @@ class ClienteRepository(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
             self.model.usuario_id == usuario_id # O usuario_id, según tu modelo
         ).group_by(
             self.model.estado
-        ).all()
-
-# Instanciamos el repositorio para poder inyectarlo luego
-cliente_repo = ClienteRepository(Cliente)
+        ).all()

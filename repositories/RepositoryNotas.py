@@ -27,7 +27,4 @@ class NotaClienteRepository(CRUDBase[NotaCliente, NotaClienteCreate, NotaCliente
 
 class NotaProductoRepository(CRUDBase[NotaProducto, NotaProductoCreate, NotaProductoUpdate]):
     def __init__(self, db: Session = Depends(get_db)):
-        super().__init__(NotaProducto, db)
-
-nota_cliente_repo = NotaClienteRepository()
-nota_producto_repo = NotaProductoRepository()
+        super().__init__(NotaProducto, db)

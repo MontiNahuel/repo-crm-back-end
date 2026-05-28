@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends, Body, status
 from typing import List
-from schemas.clienteSchema import ClienteCreate, ClienteResponse, CambioClienteResponse, ClienteResponseWithCount
+from schemas.clienteSchema import ClienteCreate, ClienteResponse, CambioClienteResponse, ClienteResponseWithCount, ClienteUpdate
 from services.clienteService import ClienteService
 from core.dependencias import obtener_usuario_actual, requerir_rol_admin
 from models.usuario import Usuario
+from models.enums import EstadoCliente
+
 # Definimos el router (El equivalente a @RestController y @RequestMapping)
 router = APIRouter(
     prefix="/clientes",
@@ -35,6 +37,14 @@ def obtener_clientes_por_usuario(
     clientes = servicio.obtener_clientes_por_usuario(usuario_actual.id, skip=skip, limit=limit, busqueda=busqueda, filtroEstado=filtroEstado, orden=orden)
     return clientes
 
+@router.get("/pipeline", response_model=dict[str, List[dict]])
+def obtener_pipeline_clientes(
+    servicio: ClienteService = Depends(),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual)
+):
+    """Retorna los clientes agrupados por su estado para renderizar un tablero Kanban."""
+    return servicio.obtener_pipeline_clientes(usuario_actual.id)
+
 @router.get("/cambios-clientes", response_model=List[CambioClienteResponse])
 def obtener_cambiosClientes(
     skip: int = 0, 
@@ -45,17 +55,40 @@ def obtener_cambiosClientes(
     return servicio.obtener_cambiosClientes(usuario_actual.id, skip=skip, limit=limit)
 
 @router.get("/{cliente_id}", response_model=ClienteResponse)
-def obtener_cliente(cliente_id: int, servicio: ClienteService = Depends()):
+def obtener_cliente(
+    cliente_id: int, 
+    servicio: ClienteService = Depends(),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual)
+):
     return servicio.obtener_cliente(cliente_id)
 
+@router.patch("/{cliente_id}", response_model=ClienteResponse)
+def actualizar_cliente(
+    cliente_id: int,
+    cliente_in: ClienteUpdate,
+    servicio: ClienteService = Depends(),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual)
+):
+    """Actualiza nombre, email o teléfono de un cliente."""
+    return servicio.actualizar_cliente(cliente_id, cliente_in)
+
+@router.delete("/{cliente_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_cliente(
+    cliente_id: int,
+    servicio: ClienteService = Depends(),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual)
+):
+    """Elimina un cliente y sus datos asociados."""
+    servicio.eliminar_cliente(cliente_id)
+
 @router.put("/{cliente_id}/estado", response_model=ClienteResponse)
-def cambiar_estado_cliente(cliente_id: int, estado: str = Body(embed=True), servicio: ClienteService = Depends(), usuario_admin: Usuario = Depends(requerir_rol_admin)):
+def cambiar_estado_cliente(cliente_id: int, estado: EstadoCliente = Body(embed=True), servicio: ClienteService = Depends(), usuario_admin: Usuario = Depends(requerir_rol_admin)):
     return servicio.cambiar_estado_cliente(cliente_id, estado, usuario_admin.id)
 
 @router.get("/{cliente_id}/historial", response_model=List[CambioClienteResponse])
 def ver_historial_cliente(
     cliente_id: int,
     servicio: ClienteService = Depends(),
-    _ : Usuario = Depends(obtener_usuario_actual) 
+    _: Usuario = Depends(obtener_usuario_actual)
 ):
     return servicio.obtener_historial_cliente(cliente_id)

@@ -1,8 +1,7 @@
-from sqlalchemy import Column, Integer, String, Enum as SQLEnum, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Enum as SQLEnum, ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship
 from database import Base
 from models.enums import EstadoCliente # Importamos el Enum
-from datetime import datetime
 
 class Cliente(Base):
     __tablename__ = "clientes"
@@ -15,7 +14,7 @@ class Cliente(Base):
     estado = Column(SQLEnum(EstadoCliente), default=EstadoCliente.LEAD, nullable=False)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
 
-    creado_en = Column(DateTime, default=datetime.now)
+    creado_en = Column(DateTime, server_default=func.now())
 
     creador = relationship("Usuario", back_populates="clientes")
     historial_cambios = relationship("CambioCliente", back_populates="cliente")

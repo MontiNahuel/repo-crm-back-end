@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, Text, DateTime, ForeignKey
 from sqlalchemy.orm import declarative_mixin, declared_attr, relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 @declarative_mixin
 class NotaMixin:
@@ -10,7 +10,7 @@ class NotaMixin:
     """
     id = Column(Integer, primary_key=True, index=True)
     contenido = Column(Text, nullable=False)
-    fecha_creacion = Column(DateTime, default=datetime.utcnow)
+    fecha_creacion = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     @declared_attr
     def usuario_id(cls):
         return Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False)
