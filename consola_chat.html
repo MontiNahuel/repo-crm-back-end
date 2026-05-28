@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consola de Chat - CRM Colaboradores</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #090d16;
+            --bg-card: #151c2c;
+            --bg-card-hover: #1e283d;
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --text-main: #f8fafc;
+            --text-muted: #64748b;
+            --border: #243049;
+            --success: #10b981;
+            --danger: #f43f5e;
+            --bubble-self: #6d28d9;
+            --bubble-other: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            overflow-x: hidden;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.4rem 0.9rem;
+            border-radius: 9999px;
+            background-color: rgba(244, 63, 94, 0.1);
+            color: var(--danger);
+            transition: all 0.3s ease;
+        }
+
+        .status-badge.connected {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 1.5rem;
+            flex-grow: 1;
+            height: calc(100vh - 120px);
+        }
+
+        /* Lateral panel */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            overflow-y: auto;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 0.75rem;
+            padding: 1.2rem;
+            border: 1px solid var(--border);
+        }
+
+        h2 {
+            font-size: 0.95rem;
+            color: var(--text-main);
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            margin-bottom: 0.8rem;
+        }
+
+        label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        input,
+        select {
+            width: 100%;
+            background-color: rgba(9, 13, 22, 0.6);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 0.6rem 0.8rem;
+            border-radius: 0.4rem;
+            font-family: inherit;
+            font-size: 0.85rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+        }
+
+        button {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+            padding: 0.6rem;
+            border-radius: 0.4rem;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* Conversations List */
+        .chat-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .chat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            padding: 0.8rem;
+            border-radius: 0.4rem;
+            background-color: rgba(9, 13, 22, 0.4);
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chat-item:hover {
+            background-color: var(--bg-card-hover);
+            border-color: var(--border);
+        }
+
+        .chat-item.active {
+            background-color: rgba(139, 92, 246, 0.1);
+            border-color: var(--primary);
+        }
+
+        .chat-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .chat-last-time {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .chat-preview {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            background-color: var(--bg-card);
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .chat-header {
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid var(--border);
+            background-color: rgba(9, 13, 22, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 1.2rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            background-color: rgba(9, 13, 22, 0.2);
+        }
+
+        /* Bubbles */
+        .message-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 70%;
+            animation: bubbleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .message-row.self {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .message-row.other {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .msg-sender {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 0.2rem;
+            margin-left: 0.3rem;
+            margin-right: 0.3rem;
+        }
+
+        .msg-bubble {
+            padding: 0.6rem 0.9rem;
+            border-radius: 0.8rem;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .self .msg-bubble {
+            background-color: var(--bubble-self);
+            color: var(--text-main);
+            border-bottom-right-radius: 0.1rem;
+        }
+
+        .other .msg-bubble {
+            background-color: var(--bubble-other);
+            color: #e2e8f0;
+            border-bottom-left-radius: 0.1rem;
+            border: 1px solid var(--border);
+        }
+
+        .msg-time {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+            margin-left: 0.3rem;
+            margin-right: 0.3rem;
+        }
+
+        .load-more-btn {
+            background: none;
+            border: 1px dashed var(--border);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            padding: 0.4rem;
+            border-radius: 0.3rem;
+            cursor: pointer;
+            align-self: center;
+            width: fit-content;
+            transition: all 0.2s ease;
+        }
+
+        .load-more-btn:hover {
+            color: var(--text-main);
+            border-color: var(--primary);
+            background-color: rgba(139, 92, 246, 0.05);
+        }
+
+        /* Chat Input Area */
+        .chat-input-bar {
+            padding: 0.8rem 1.2rem;
+            border-top: 1px solid var(--border);
+            background-color: rgba(9, 13, 22, 0.3);
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+        }
+
+        .chat-input-bar input {
+            flex-grow: 1;
+        }
+
+        .chat-input-bar button {
+            width: fit-content;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+
+        /* Logs Console */
+        .logs-card {
+            background-color: var(--bg-card);
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            padding: 0.8rem 1.2rem;
+            max-height: 120px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .log-line {
+            color: var(--text-muted);
+        }
+
+        .log-line.info {
+            color: #38bdf8;
+        }
+
+        .log-line.success {
+            color: var(--success);
+        }
+
+        .log-line.error {
+            color: var(--danger);
+        }
+
+        @keyframes bubbleIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px) scale(0.97);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+    </style>
+    <!-- Cargamos Socket.IO oficial desde CDN -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+
+<body>
+
+    <header>
+        <div>
+            <h1>CRM Collaborator Chat Engine</h1>
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">Panel en tiempo real para
+                testing de persistencia políglota</p>
+        </div>
+        <div id="statusBadge" class="status-badge">
+            <div class="status-dot"></div>
+            <span id="statusText">Desconectado</span>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <div class="sidebar">
+            <!-- Autenticación y Servidor -->
+            <div class="card">
+                <h2>🔑 Acceso & Conexión</h2>
+                <div class="input-group">
+                    <label for="serverUrl">Servidor API / WS</label>
+                    <input type="text" id="serverUrl" value="http://localhost:8000">
+                </div>
+
+                <!-- Formulario de Login Directo -->
+                <div id="loginSection">
+                    <div class="input-group">
+                        <label for="loginEmail">Email del Colaborador</label>
+                        <input type="email" id="loginEmail" placeholder="ej: admin@correo.com">
+                    </div>
+                    <div class="input-group">
+                        <label for="loginPassword">Contraseña</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••">
+                    </div>
+                </div>
+
+                <!-- Entrada de Token Manual (Alternativa) -->
+                <div id="tokenSection" style="display: none;">
+                    <div class="input-group">
+                        <label for="jwtToken">Token JWT Manual</label>
+                        <input type="text" id="jwtToken" placeholder="Pega el access_token del login de Swagger">
+                    </div>
+                </div>
+
+                <div style="margin-top: 0.8rem; margin-bottom: 0.6rem;">
+                    <button id="connectBtn">Login & Conectar Sockets</button>
+                </div>
+
+                <div style="text-align: center;">
+                    <a href="#" id="toggleAuthModeBtn"
+                        style="font-size: 0.75rem; color: var(--primary); text-decoration: none; font-weight: 600;">O
+                        ingresar Token JWT manualmente</a>
+                </div>
+            </div>
+
+            <!-- Iniciar Chat Directo -->
+            <div class="card">
+                <h2>💬 Nuevo Chat Directo</h2>
+                <div class="input-group">
+                    <label for="otherUserId">ID del otro Colaborador</label>
+                    <input type="number" id="otherUserId" placeholder="Ej: 2" min="1">
+                </div>
+                <button id="startChatBtn">Crear / Obtener Chat</button>
+            </div>
+
+            <!-- Iniciar Chat Grupal -->
+            <div class="card">
+                <h2>👥 Nuevo Chat Grupal</h2>
+                <div class="input-group">
+                    <label for="groupName">Nombre del Grupo</label>
+                    <input type="text" id="groupName" placeholder="Ej: Equipo de Ventas 🚀">
+                </div>
+                <div class="input-group">
+                    <label for="groupParticipants">IDs de Participantes (separados por coma)</label>
+                    <input type="text" id="groupParticipants" placeholder="Ej: 2, 3">
+                </div>
+                <button id="createGroupBtn">Crear Sala Grupal</button>
+            </div>
+
+            <!-- Lista de Chats -->
+            <div class="card" style="flex-grow: 1; display: flex; flex-direction: column;">
+                <h2>📁 Mis Conversaciones <button id="refreshChatsBtn"
+                        style="width: auto; padding: 0.2rem 0.5rem; font-size: 0.65rem; background: transparent; border: 1px solid var(--border); color: var(--text-muted);">🔄</button>
+                </h2>
+                <div id="chatsList" class="chat-list">
+                    <p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin-top: 1rem;">
+                        Conéctate para ver tus chats.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Área de Chat -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <span id="chatTitle" class="chat-header-title">Ninguna conversación seleccionada</span>
+                <span id="chatParticipants" style="font-size: 0.75rem; color: var(--text-muted);"></span>
+            </div>
+
+            <div id="chatMessages" class="chat-messages">
+                <div style="margin: auto; text-align: center; color: var(--text-muted);">
+                    <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">💬</p>
+                    <p style="font-size: 0.85rem;">Selecciona una conversación o introduce un ID para comenzar a chatear
+                        en tiempo real con otro colaborador.</p>
+                </div>
+            </div>
+
+            <div class="chat-input-bar">
+                <input type="text" id="messageInput" placeholder="Escribe un mensaje de chat..." disabled>
+                <button id="sendMessageBtn" disabled>Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Console -->
+    <div id="consoleLog" class="logs-card">
+        <div class="log-line info">[Consola] Lista para realizar tests del motor de chat.</div>
+    </div>
+
+    <script>
+        let socket = null;
+        let activeConversationId = null;
+        let currentUserId = null;
+        let historyPage = 1;
+        let currentAuthMode = 'login'; // 'login' o 'token'
+        let conversationsMap = {}; // Almacena las salas indexadas por ID para acceder a sus Vistos
+
+        // Elementos
+        const serverUrlInput = document.getElementById('serverUrl');
+        const loginSection = document.getElementById('loginSection');
+        const tokenSection = document.getElementById('tokenSection');
+        const loginEmailInput = document.getElementById('loginEmail');
+        const loginPasswordInput = document.getElementById('loginPassword');
+        const jwtTokenInput = document.getElementById('jwtToken');
+        const toggleAuthModeBtn = document.getElementById('toggleAuthModeBtn');
+
+        const connectBtn = document.getElementById('connectBtn');
+        const statusBadge = document.getElementById('statusBadge');
+        const statusText = document.getElementById('statusText');
+
+        const otherUserIdInput = document.getElementById('otherUserId');
+        const startChatBtn = document.getElementById('startChatBtn');
+        const groupNameInput = document.getElementById('groupName');
+        const groupParticipantsInput = document.getElementById('groupParticipants');
+        const createGroupBtn = document.getElementById('createGroupBtn');
+        const refreshChatsBtn = document.getElementById('refreshChatsBtn');
+        const chatsList = document.getElementById('chatsList');
+
+        const chatTitle = document.getElementById('chatTitle');
+        const chatParticipants = document.getElementById('chatParticipants');
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendMessageBtn = document.getElementById('sendMessageBtn');
+        const consoleLog = document.getElementById('consoleLog');
+
+        function addLog(text, type = 'info') {
+            const line = document.createElement('div');
+            line.className = `log-line ${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+            consoleLog.appendChild(line);
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+        }
+
+        // Formatea el timestamp UTC de MongoDB a la hora local de la máquina del usuario
+        function formatLocalTime(timestamp) {
+            if (!timestamp) return '';
+            let dateStr = timestamp;
+            // Si viene en crudo como naive UTC sin sufijo Z ni offset, le añadimos Z
+            if (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+')) {
+                dateStr += 'Z';
+            }
+            return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Alternar modo de autenticación
+        toggleAuthModeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentAuthMode === 'login') {
+                currentAuthMode = 'token';
+                loginSection.style.display = 'none';
+                tokenSection.style.display = 'block';
+                toggleAuthModeBtn.textContent = 'O iniciar sesión con correo/contraseña';
+                connectBtn.textContent = 'Conectar Sockets';
+            } else {
+                currentAuthMode = 'login';
+                loginSection.style.display = 'block';
+                tokenSection.style.display = 'none';
+                toggleAuthModeBtn.textContent = 'O ingresar Token JWT manualmente';
+                connectBtn.textContent = 'Login & Conectar Sockets';
+            }
+        });
+
+        // Conectar a WS y API
+        connectBtn.addEventListener('click', async () => {
+            if (socket && socket.connected) {
+                socket.disconnect();
+                return;
+            }
+
+            const serverUrl = serverUrlInput.value.trim();
+            let token = '';
+
+            if (currentAuthMode === 'login') {
+                const email = loginEmailInput.value.trim();
+                const password = loginPasswordInput.value.trim();
+
+                if (!email || !password) {
+                    alert("Por favor, ingresa correo y contraseña.");
+                    return;
+                }
+
+                addLog(`Iniciando sesión en la API para obtener Token (${email})...`);
+                try {
+                    // Formulario codificado x-www-form-urlencoded para OAuth2PasswordRequestForm (/usuarios/login)
+                    const params = new URLSearchParams();
+                    params.append('username', email);
+                    params.append('password', password);
+
+                    const response = await fetch(`${serverUrl}/usuarios/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: params
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Credenciales incorrectas o error en API: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    token = data.access_token;
+                    jwtTokenInput.value = token; // Sincronizamos en el campo oculto
+                    addLog("¡Sesión iniciada correctamente! Token obtenido con éxito.", "success");
+                } catch (e) {
+                    addLog(`Error al iniciar sesión: ${e.message}`, "error");
+                    alert(`Error al iniciar sesión: ${e.message}`);
+                    return;
+                }
+            } else {
+                token = jwtTokenInput.value.trim();
+                if (!token) {
+                    alert("Por favor, pega el Token JWT en el campo correspondiente.");
+                    return;
+                }
+            }
+
+            // Desciframos el ID del usuario del JWT localmente para saber quiénes somos
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(c => {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const decoded = JSON.parse(jsonPayload);
+                currentUserId = parseInt(decoded.sub);
+                addLog(`Identificado localmente como colaborador ID: ${currentUserId}`, 'success');
+            } catch (e) {
+                addLog("Error al interpretar localmente el JWT. ¿Es válido?", "error");
+            }
+
+            addLog(`Estableciendo conexión Socket.IO con ${serverUrl}...`);
+
+            // Conectar enviando el Token en auth
+            socket = io(serverUrl, {
+                transports: ['websocket'],
+                auth: { token: token }
+            });
+
+            socket.on('connect', () => {
+                statusBadge.classList.add('connected');
+                statusText.textContent = 'Conectado';
+                connectBtn.textContent = 'Desconectar';
+                connectBtn.style.backgroundColor = 'var(--danger)';
+                addLog('¡Conectado exitosamente al canal Socket.IO!', 'success');
+
+                // Activar botones y cargar chats
+                refreshConversations();
+            });
+
+            socket.on('disconnect', () => {
+                statusBadge.classList.remove('connected');
+                statusText.textContent = 'Desconectado';
+                connectBtn.textContent = currentAuthMode === 'login' ? 'Login & Conectar Sockets' : 'Conectar Sockets';
+                connectBtn.style.backgroundColor = 'var(--primary)';
+                addLog('Desconectado del servidor de Sockets.', 'error');
+                disableChatInput();
+            });
+
+            socket.on('connect_error', (err) => {
+                addLog(`Error de conexión WebSocket: ${err.message}`, 'error');
+            });
+
+            // ESCUCHAR NUEVOS MENSAJES DE LA SALA
+            socket.on('new_message', (msg) => {
+                addLog(`Nuevo mensaje recibido en sala: ${msg.content.substring(0, 15)}...`);
+                // Si el mensaje es de la conversación que tenemos abierta en pantalla
+                if (msg.conversation_id === activeConversationId) {
+                    appendMessage(msg);
+                    // Informamos al backend que ya leímos este mensaje entrante
+                    socket.emit('read_conversation', { conversation_id: activeConversationId });
+                }
+                // Refrescamos lateral para actualizar la preview
+                refreshConversationsQuiet();
+            });
+
+            // ESCUCHAR CONFIRMACIONES DE LECTURA (VISTOS) EN TIEMPO REAL
+            socket.on('conversation_read', (data) => {
+                const { conversation_id, user_id, read_at } = data;
+                
+                // Actualizamos en la caché en memoria
+                const conv = conversationsMap[conversation_id];
+                if (conv) {
+                    if (!conv.last_read) conv.last_read = {};
+                    conv.last_read[user_id.toString()] = read_at;
+                }
+
+                // Si es el chat activo en pantalla, refrescamos los ticks visuales al instante
+                if (conversation_id === activeConversationId) {
+                    updateOnScreenReadStatuses();
+                }
+            });
+        });
+
+        // Crear/obtener chat directo
+        startChatBtn.addEventListener('click', async () => {
+            const otherId = parseInt(otherUserIdInput.value.trim());
+            const token = jwtTokenInput.value.trim();
+            const serverUrl = serverUrlInput.value.trim();
+
+            if (!otherId) return;
+            if (!token) {
+                alert("Debes estar conectado con tu Token para crear un chat.");
+                return;
+            }
+
+            try {
+                addLog(`Llamando API POST /chat/direct con otro colaborador ID: ${otherId}...`);
+                const res = await fetch(`${serverUrl}/chat/direct?other_user_id=${otherId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!res.ok) {
+                    throw new Error(await res.text());
+                }
+
+                const data = await res.json();
+                addLog(`Chat directo obtenido/creado con ID: ${data.id}`, 'success');
+
+                // Refrescar lista y abrir este chat inmediatamente
+                await refreshConversations();
+                openConversation(data);
+
+            } catch (err) {
+                addLog(`Error al crear chat directo: ${err.message}`, 'error');
+            }
+        });
+
+        // Crear chat grupal
+        createGroupBtn.addEventListener('click', async () => {
+            const name = groupNameInput.value.trim();
+            const rawParticipants = groupParticipantsInput.value.trim();
+            const token = jwtTokenInput.value.trim();
+            const serverUrl = serverUrlInput.value.trim();
+
+            if (!token) {
+                alert("Debes estar conectado con tu Token para crear un chat grupal.");
+                return;
+            }
+            if (!name) {
+                alert("Por favor, ingresa el nombre del grupo.");
+                return;
+            }
+            if (!rawParticipants) {
+                alert("Por favor, ingresa al menos un ID de participante (separados por coma).");
+                return;
+            }
+
+            // Convertimos la cadena "2, 3" a un array [2, 3]
+            const participantIds = rawParticipants.split(',')
+                .map(id => parseInt(id.trim()))
+                .filter(id => !isNaN(id) && id > 0);
+
+            if (participantIds.length === 0) {
+                alert("Los IDs de los participantes no son validos.");
+                return;
+            }
+
+            try {
+                addLog(`Creando grupo "${name}" con participantes [${participantIds.join(', ')}]...`);
+                const res = await fetch(`${serverUrl}/chat/group`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        participant_ids: participantIds
+                    })
+                });
+
+                if (!res.ok) {
+                    throw new Error(await res.text());
+                }
+
+                const data = await res.json();
+                addLog(`Grupo "${name}" creado con ID: ${data.id}`, 'success');
+
+                // Limpiamos los inputs
+                groupNameInput.value = '';
+                groupParticipantsInput.value = '';
+
+                // Refrescamos lista y abrimos este chat grupal inmediatamente
+                await refreshConversations();
+                openConversation(data);
+
+            } catch (err) {
+                addLog(`Error al crear grupo: ${err.message}`, 'error');
+            }
+        });
+
+        refreshChatsBtn.addEventListener('click', refreshConversations);
+
+        // HELPERS PARA EL CÁLCULO DE VISTOS EN TIEMPO REAL
+        function getMessageReadStatus(msg, convId) {
+            const conv = conversationsMap[convId];
+            if (!conv || !conv.last_read) return 'sent';
+
+            // Comparamos el timestamp del mensaje con el cursor del participante
+            const msgTime = new Date(msg.timestamp);
+
+            if (conv.type !== 'group') {
+                // Chats 1-a-1: Buscamos al otro usuario
+                const other = conv.participants.find(p => p.user_id !== currentUserId);
+                if (!other) return 'sent';
+
+                const otherLastReadStr = conv.last_read[other.user_id.toString()];
+                if (!otherLastReadStr) return 'sent';
+
+                const otherLastRead = new Date(otherLastReadStr);
+                return otherLastRead >= msgTime ? 'read' : 'sent';
+            } else {
+                // Chats Grupales: Contamos cuántos miembros leyeron el mensaje
+                let readersCount = 0;
+                conv.participants.forEach(p => {
+                    if (p.user_id !== msg.sender_id) { // Excluimos al emisor
+                        const lastReadStr = conv.last_read[p.user_id.toString()];
+                        if (lastReadStr) {
+                            const lastRead = new Date(lastReadStr);
+                            if (lastRead >= msgTime) {
+                                readersCount++;
+                            }
+                        }
+                    }
+                });
+
+                if (readersCount === 0) return 'sent';
+
+                const totalOthers = conv.participants.length - 1;
+                if (readersCount === totalOthers) return 'read'; // Leído por todos
+                return 'delivered'; // Leído por algunos
+            }
+        }
+
+        function getStatusIcon(status) {
+            if (status === 'read') {
+                return '<span style="color: #34b7f1; font-weight: bold; margin-left: 5px;" title="Visto">✓✓</span>';
+            } else if (status === 'delivered') {
+                return '<span style="color: var(--text-muted); font-weight: bold; margin-left: 5px;" title="Entregado">✓✓</span>';
+            } else {
+                return '<span style="color: var(--text-muted); margin-left: 5px;" title="Enviado">✓</span>';
+            }
+        }
+
+        function updateOnScreenReadStatuses() {
+            if (!activeConversationId) return;
+            const statusContainers = chatMessages.querySelectorAll('.read-status-icon');
+            statusContainers.forEach(container => {
+                const timestamp = container.dataset.timestamp;
+                // Calculamos el nuevo estado basándonos en la caché actualizada
+                const status = getMessageReadStatus({ timestamp, sender_id: currentUserId }, activeConversationId);
+                container.innerHTML = getStatusIcon(status);
+            });
+        }
+
+        async function refreshConversations() {
+            const token = jwtTokenInput.value.trim();
+            const serverUrl = serverUrlInput.value.trim();
+            if (!token) return;
+
+            try {
+                const res = await fetch(`${serverUrl}/chat/conversations`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const conversations = await res.json();
+                renderConversations(conversations);
+            } catch (err) {
+                addLog(`Error al obtener conversaciones: ${err.message}`, 'error');
+            }
+        }
+
+        async function refreshConversationsQuiet() {
+            const token = jwtTokenInput.value.trim();
+            const serverUrl = serverUrlInput.value.trim();
+            if (!token) return;
+            try {
+                const res = await fetch(`${serverUrl}/chat/conversations`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const conversations = await res.json();
+                renderConversationsQuiet(conversations);
+            } catch (e) { }
+        }
+
+        function renderConversations(conversations) {
+            chatsList.innerHTML = '';
+            if (conversations.length === 0) {
+                chatsList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.75rem; text-align: center; margin-top: 1rem;">No tienes chats activos.</p>`;
+                return;
+            }
+
+            conversations.forEach(c => {
+                // Alimentamos la caché en memoria para los Vistos
+                conversationsMap[c.id] = c;
+
+                // Buscamos el nombre del otro participante (por si es directo)
+                const other = c.participants.find(p => p.user_id !== currentUserId) || c.participants[0];
+                const activeClass = activeConversationId === c.id ? 'active' : '';
+                const lastMsg = c.last_message ? c.last_message.content : 'Sin mensajes';
+                const lastTime = c.last_message ? formatLocalTime(c.last_message.timestamp) : '';
+
+                // Si es grupal, usamos el nombre de grupo con icono
+                const displayName = c.type === 'group' ? `👥 ${c.name}` : `👤 ${other.nombre} ${other.apellido}`;
+
+                const item = document.createElement('div');
+                item.className = `chat-item ${activeClass}`;
+                item.dataset.id = c.id;
+                item.innerHTML = `
+                    <div class="chat-item-header">
+                        <span class="chat-name">${displayName}</span>
+                        <span class="chat-last-time">${lastTime}</span>
+                    </div>
+                    <div class="chat-preview">${lastMsg}</div>
+                `;
+
+                item.addEventListener('click', () => openConversation(c));
+                chatsList.appendChild(item);
+            });
+        }
+
+        function renderConversationsQuiet(conversations) {
+            // Actualiza la lista sin perder la selección o rehacer eventos
+            conversations.forEach(c => {
+                conversationsMap[c.id] = c; // Mantenemos la caché sincronizada
+                const item = chatsList.querySelector(`[data-id="${c.id}"]`);
+                if (item) {
+                    const lastMsg = c.last_message ? c.last_message.content : 'Sin mensajes';
+                    const lastTime = c.last_message ? formatLocalTime(c.last_message.timestamp) : '';
+                    item.querySelector('.chat-last-time').textContent = lastTime;
+                    item.querySelector('.chat-preview').textContent = lastMsg;
+                } else {
+                    // Si hay un chat nuevo, hacemos refresh completo
+                    renderConversations(conversations);
+                }
+            });
+        }
+
+        // Abrir una conversación
+        async function openConversation(conv) {
+            // 1. Si había un chat abierto, salimos de su sala en el backend
+            if (activeConversationId && socket && socket.connected) {
+                socket.emit('leave_conversation', { conversation_id: activeConversationId });
+            }
+
+            activeConversationId = conv.id;
+            historyPage = 1;
+
+            // Marcamos activo en la interfaz
+            document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+            const activeEl = chatsList.querySelector(`[data-id="${conv.id}"]`);
+            if (activeEl) activeEl.classList.add('active');
+
+            if (conv.type === 'group') {
+                chatTitle.textContent = `👥 ${conv.name}`;
+                // Listamos todos los participantes del grupo
+                const members = conv.participants.map(p => `${p.nombre} (${p.rol})`).join(', ');
+                chatParticipants.textContent = `Miembros: ${members}`;
+            } else {
+                const other = conv.participants.find(p => p.user_id !== currentUserId) || conv.participants[0];
+                chatTitle.textContent = `👤 ${other.nombre} ${other.apellido}`;
+                chatParticipants.textContent = `[${other.rol}]`;
+            }
+
+            // 2. Entramos a la sala de Socket.IO en el backend y emitimos lectura (Visto)
+            if (socket && socket.connected) {
+                socket.emit('join_conversation', { conversation_id: conv.id });
+                socket.emit('read_conversation', { conversation_id: conv.id });
+                addLog(`Enviado join_conversation y read_conversation para sala: ${conv.id}`);
+            }
+
+            // Habilitar inputs
+            messageInput.disabled = false;
+            sendMessageBtn.disabled = false;
+            messageInput.focus();
+
+            // 3. Cargar historial desde la API (Bucket Pattern - page 1)
+            await loadHistory(conv.id, 1, false);
+        }
+
+        async function loadHistory(convId, page = 1, appendTop = false) {
+            const token = jwtTokenInput.value.trim();
+            const serverUrl = serverUrlInput.value.trim();
+
+            try {
+                if (!appendTop) {
+                    chatMessages.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin: auto;">Cargando mensajes del bucket...</p>`;
+                }
+
+                addLog(`Cargando historial de MongoDB - Bucket página: ${page}...`);
+                const res = await fetch(`${serverUrl}/chat/conversations/${convId}/history?page=${page}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const messages = await res.json();
+
+                if (!appendTop) {
+                    chatMessages.innerHTML = '';
+                    // Si hay historial antiguo posible, dejamos botón de cargar más
+                    if (messages.length === 50) {
+                        const loadMore = document.createElement('button');
+                        loadMore.className = 'load-more-btn';
+                        loadMore.id = 'loadMoreBtn';
+                        loadMore.textContent = 'Cargar mensajes anteriores';
+                        loadMore.onclick = () => {
+                            historyPage++;
+                            loadHistory(convId, historyPage, true);
+                        };
+                        chatMessages.appendChild(loadMore);
+                    }
+                }
+
+                if (messages.length === 0 && !appendTop) {
+                    chatMessages.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin: auto;">No hay mensajes. ¡Comiencen a hablar!</p>`;
+                    return;
+                }
+
+                // Los mensajes llegan ordenados cronológicamente.
+                // Si agregamos arriba por scroll (loadMore), insertamos después del botón.
+                const anchor = document.getElementById('loadMoreBtn');
+
+                messages.forEach(msg => {
+                    const isSelf = msg.sender_id === currentUserId;
+                    const row = document.createElement('div');
+                    row.className = `message-row ${isSelf ? 'self' : 'other'}`;
+
+                    const time = formatLocalTime(msg.timestamp);
+
+                    // Añadimos los ticks de Visto solo en mensajes emitidos por nosotros
+                    let statusHtml = '';
+                    if (isSelf) {
+                        const status = getMessageReadStatus(msg, convId);
+                        statusHtml = `<span class="read-status-icon" data-timestamp="${msg.timestamp}">${getStatusIcon(status)}</span>`;
+                    }
+
+                    row.innerHTML = `
+                        <span class="msg-sender">${isSelf ? 'Tú' : msg.sender_name}</span>
+                        <div class="msg-bubble">${msg.content}</div>
+                        <span class="msg-time">${time} ${statusHtml}</span>
+                    `;
+
+                    if (appendTop && anchor) {
+                        // Insertamos justo después del botón de cargar más
+                        anchor.after(row);
+                    } else {
+                        chatMessages.appendChild(row);
+                    }
+                });
+
+                if (!appendTop) {
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } else {
+                    // Si se cargaron más mensajes arriba y ya no son 50, sacamos el botón
+                    if (messages.length < 50 && anchor) {
+                        anchor.remove();
+                    }
+                }
+
+            } catch (err) {
+                addLog(`Error al cargar historial: ${err.message}`, 'error');
+            }
+        }
+
+        function appendMessage(msg) {
+            const isSelf = msg.sender_id === currentUserId;
+
+            // Si el contenedor muestra el cartel de "no hay mensajes", lo limpiamos
+            if (chatMessages.querySelector('p')) {
+                chatMessages.innerHTML = '';
+            }
+
+            const row = document.createElement('div');
+            row.className = `message-row ${isSelf ? 'self' : 'other'}`;
+
+            const time = formatLocalTime(msg.timestamp);
+
+            let statusHtml = '';
+            if (isSelf) {
+                const status = getMessageReadStatus(msg, activeConversationId);
+                statusHtml = `<span class="read-status-icon" data-timestamp="${msg.timestamp}">${getStatusIcon(status)}</span>`;
+            }
+
+            row.innerHTML = `
+                <span class="msg-sender">${isSelf ? 'Tú' : msg.sender_name}</span>
+                <div class="msg-bubble">${msg.content}</div>
+                <span class="msg-time">${time} ${statusHtml}</span>
+            `;
+
+            chatMessages.appendChild(row);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Enviar Mensaje
+        sendMessageBtn.addEventListener('click', emitMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') emitMessage();
+        });
+
+        function emitMessage() {
+            const content = messageInput.value.trim();
+            if (!content || !activeConversationId || !socket || !socket.connected) return;
+
+            socket.emit('send_message', {
+                conversation_id: activeConversationId,
+                content: content,
+                type: 'text'
+            });
+
+            messageInput.value = '';
+            messageInput.focus();
+        }
+
+        function disableChatInput() {
+            messageInput.disabled = true;
+            sendMessageBtn.disabled = true;
+            messageInput.value = '';
+            chatTitle.textContent = 'Ninguna conversación seleccionada';
+            chatParticipants.textContent = '';
+            chatsList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin-top: 1rem;">Conéctate para ver tus chats.</p>`;
+            chatMessages.innerHTML = `
+                <div style="margin: auto; text-align: center; color: var(--text-muted);">
+                    <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">💬</p>
+                    <p style="font-size: 0.85rem;">Selecciona una conversación o introduce un ID para comenzar a chatear en tiempo real con otro colaborador.</p>
+                </div>
+            `;
+            activeConversationId = null;
+        }
+    </script>
+</body>
+
+</html>

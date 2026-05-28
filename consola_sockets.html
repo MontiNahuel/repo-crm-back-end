@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consola en Tiempo Real - Sockets CRM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --accent: #a855f7;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a855f7, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            transition: all 0.3s ease;
+        }
+
+        .status-badge.connected {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 1.5rem;
+            flex-grow: 1;
+        }
+
+        .control-panel {
+            background-color: var(--bg-card);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            height: fit-content;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        input {
+            width: 100%;
+            background-color: var(--bg-dark);
+            border: 1px solid #334155;
+            color: var(--text-main);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-family: inherit;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+        }
+
+        button {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background-color 0.2s ease;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .console-container {
+            background-color: var(--bg-card);
+            border-radius: 1rem;
+            border: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 600px;
+        }
+
+        .console-header {
+            background-color: rgba(15, 23, 42, 0.6);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .console-clear {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .console-clear:hover {
+            color: var(--text-main);
+        }
+
+        .console-logs {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+        }
+
+        .log-entry {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: rgba(15, 23, 42, 0.4);
+            border-left: 4px solid var(--text-muted);
+            animation: slideIn 0.2s ease-out;
+        }
+
+        .log-entry.system { border-left-color: var(--accent); }
+        .log-entry.cliente_creado { border-left-color: var(--success); }
+        .log-entry.estado_cliente_cambiado { border-left-color: var(--warning); }
+        .log-entry.producto_creado { border-left-color: var(--primary); }
+        .log-entry.stock_actualizado { border-left-color: var(--accent); }
+
+        .log-time {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .log-title {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .log-body {
+            color: #cbd5e1;
+            white-space: pre-wrap;
+            background-color: rgba(15, 23, 42, 0.6);
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    <!-- Cargamos Socket.IO oficial desde el CDN -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>CRM Sockets Live Console</h1>
+            <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Monitor en tiempo real de notificaciones del CRM</p>
+        </div>
+        <div id="statusBadge" class="status-badge">
+            <div class="status-dot"></div>
+            <span id="statusText">Desconectado</span>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <div class="control-panel">
+            <h2>Configuración</h2>
+            <div class="input-group">
+                <label for="serverUrl">Servidor URL</label>
+                <input type="text" id="serverUrl" value="http://localhost:8001">
+            </div>
+            <button id="connectBtn">Conectar</button>
+            
+            <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+                <p><strong>💡 ¿Cómo probar?</strong></p>
+                <ol style="margin-left: 1.2rem; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                    <li>Poné el puerto correcto en el que corre tu API (ej: 8000 u 8001) y dale "Conectar".</li>
+                    <li>Entrá a tu Swagger UI e iniciá sesión.</li>
+                    <li>Modificá el stock de un producto o creá un cliente.</li>
+                    <li>¡Vas a ver el mensaje Socket.IO aparecer acá al instante!</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="console-container">
+            <div class="console-header">
+                <h2>Mensajes Recibidos</h2>
+                <button id="clearBtn" class="console-clear">Limpiar consola</button>
+            </div>
+            <div id="logs" class="console-logs">
+                <div class="log-entry system">
+                    <div class="log-time">Sistema</div>
+                    <div class="log-title">Consola lista</div>
+                    <p style="color: var(--text-muted)">Hacé click en Conectar para empezar a recibir notificaciones en tiempo real.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        const connectBtn = document.getElementById('connectBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const serverUrlInput = document.getElementById('serverUrl');
+        const statusBadge = document.getElementById('statusBadge');
+        const statusText = document.getElementById('statusText');
+        const logsContainer = document.getElementById('logs');
+
+        function addLog(event, data, type = 'system') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            
+            const time = new Date().toLocaleTimeString();
+            
+            entry.innerHTML = `
+                <div class="log-time">${time}</div>
+                <div class="log-title">📢 Evento: <span style="color: var(--primary)">${event}</span></div>
+                <div class="log-body">${JSON.stringify(data, null, 2)}</div>
+            `;
+            
+            logsContainer.appendChild(entry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        connectBtn.addEventListener('click', () => {
+            if (socket && socket.connected) {
+                socket.disconnect();
+                return;
+            }
+
+            const url = serverUrlInput.value.trim();
+            addLog('SYSTEM', `Intentando conectar a ${url}...`);
+
+            // Conexión
+            socket = io(url, {
+                transports: ['websocket', 'polling']
+            });
+
+            socket.on('connect', () => {
+                statusBadge.classList.add('connected');
+                statusText.textContent = 'Conectado';
+                connectBtn.textContent = 'Desconectar';
+                addLog('SYSTEM', '¡Conectado exitosamente al servidor Socket.IO!', 'system');
+            });
+
+            socket.on('disconnect', () => {
+                statusBadge.classList.remove('connected');
+                statusText.textContent = 'Desconectado';
+                connectBtn.textContent = 'Conectar';
+                addLog('SYSTEM', 'Desconectado del servidor.', 'system');
+            });
+
+            socket.on('connect_error', (error) => {
+                addLog('ERROR_CONEXION', error.message, 'system');
+            });
+
+            // ESCUCHAMOS TODOS LOS EVENTOS NUEVOS QUE CREAMOS
+            socket.on('cliente_creado', (data) => {
+                addLog('cliente_creado', data, 'cliente_creado');
+            });
+
+            socket.on('estado_cliente_cambiado', (data) => {
+                addLog('estado_cliente_cambiado', data, 'estado_cliente_cambiado');
+            });
+
+            socket.on('producto_creado', (data) => {
+                addLog('producto_creado', data, 'producto_creado');
+            });
+
+            socket.on('stock_actualizado', (data) => {
+                addLog('stock_actualizado', data, 'stock_actualizado');
+            });
+        });
+
+        clearBtn.addEventListener('click', () => {
+            logsContainer.innerHTML = '';
+        });
+    </script>
+</body>
+</html>
