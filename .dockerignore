@@ -1,0 +1,27 @@
+# Ignorar entornos virtuales locales
+venv/
+.venv/
+env/
+
+# Ignorar control de versiones y configuraciones locales
+.git/
+.gitignore
+.env
+.agents/
+skills-lock.json
+
+# Ignorar archivos temporales y cachés de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Ignorar respaldos locales de bases de datos
+copia_respaldo.sql
+.db
+
+# Ignorar consolas locales de prueba
+consola_chat.html
+consola_sockets.html
