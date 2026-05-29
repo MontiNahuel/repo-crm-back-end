@@ -9,6 +9,10 @@ load_dotenv()
 # La URL de conexión se lee del .env (nunca hardcodeada en el código fuente)
 URL_BASE_DATOS = os.getenv("DATABASE_URL", "mysql+pymysql://root:root@localhost:3306/inventario_db")
 
+# Auto-corrección para producción: si la URL viene como mysql:// la reescribimos a mysql+pymysql:// para forzar el uso del driver PyMySQL
+if URL_BASE_DATOS and URL_BASE_DATOS.startswith("mysql://"):
+    URL_BASE_DATOS = URL_BASE_DATOS.replace("mysql://", "mysql+pymysql://", 1)
+
 # El motor que gestiona las conexiones
 engine = create_engine(URL_BASE_DATOS)
 
