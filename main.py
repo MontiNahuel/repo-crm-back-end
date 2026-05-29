@@ -82,6 +82,8 @@ app.include_router(ControllerChat.router)
 # ==========================================
 # CORS — Orígenes permitidos
 # ==========================================
+import os
+
 origenes_permitidos = [
     "http://localhost:5173",   # Vite/Vue en desarrollo
     "http://127.0.0.1:5173",  # IP local alternativa
@@ -90,9 +92,17 @@ origenes_permitidos = [
     "null"                     # Permite abrir consola_chat.html localmente con doble-click
 ]
 
+# Agregar el origen de producción del frontend desde variables de entorno si existe
+frontend_prod = os.getenv("FRONTEND_URL")
+if frontend_prod:
+    # Sanitizamos comillas o barras diagonales al final de la URL
+    url_limpia = frontend_prod.strip().strip('"').strip("'").rstrip("/")
+    origenes_permitidos.append(url_limpia)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origenes_permitidos,
+    allow_origin_regex=r"https://.*\.vercel\.app", # Permite subdominios y vistas previas de Vercel
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
