@@ -8,7 +8,7 @@ logger = logging.getLogger("crm")
 
 load_dotenv()
 
-MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+MONGO_URL = os.getenv("MONGO_URL") or os.getenv("MONGO_URI") or "mongodb://localhost:27017"
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "crm_colaboradores_chat")
 
 # Variables globales para reutilizar el cliente único de MongoDB (Singleton)
