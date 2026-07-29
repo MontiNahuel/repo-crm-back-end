@@ -29,9 +29,12 @@ class ProductRepository(CRUDBase[Producto, ProductoCreate, ProductoUpdate]):
             self.db.commit()
             self.db.refresh(db_obj)
             return db_obj
-        except IntegrityError:
+        except IntegrityError as e:
             self.db.rollback() # Abortamos la transacción si falla
-            raise ValueError("Ya existe un producto con este SKU en la base de datos.")
+            error_msg = str(e.orig).lower()
+            if "sku" in error_msg or "duplicate" in error_msg:
+                raise ValueError("Ya existe un producto con este SKU en la base de datos.")
+            raise ValueError(f"Error de integridad en la base de datos (revisar categoría u otros datos): {str(e.orig)}")
 
     def update_stock(self, producto: Producto, nuevo_stock: int) -> Producto:
         # Si por alguna razón el producto no tenía inventario, se lo creamos
