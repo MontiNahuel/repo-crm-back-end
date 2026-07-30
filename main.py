@@ -19,8 +19,8 @@ logger = logging.getLogger("crm")
 
 # IMPORTANTE: Debemos importar los modelos antes de llamar a create_all
 # para que SQLAlchemy sepa qué tablas debe crear.
-from controllers import ControllerNotas, ControllerProducts, ControllerClient, ControllerUsuario, ControllerTarea, ControllerEstadisticas, ControllerCategorias, ControllerChat
-from models import categorias, cambiosClientes
+from controllers import ControllerNotas, ControllerProducts, ControllerClient, ControllerUsuario, ControllerTarea, ControllerEstadisticas, ControllerCategorias, ControllerChat, ControllerGrupo, ControllerUsuarioAdmin
+from models import categorias, cambiosClientes, grupo
 
 
 # ==========================================
@@ -77,6 +77,8 @@ app.include_router(ControllerTarea.router)
 app.include_router(ControllerEstadisticas.router)
 app.include_router(ControllerCategorias.router)
 app.include_router(ControllerChat.router)
+app.include_router(ControllerGrupo.router)
+app.include_router(ControllerUsuarioAdmin.router)
 
 
 # ==========================================
@@ -86,6 +88,7 @@ import os
 
 origenes_permitidos = [
     "http://localhost:5173",   # Vite/Vue en desarrollo
+    "http://localhost:5174",
     "http://127.0.0.1:5173",  # IP local alternativa
     "http://localhost:5500",   # VS Code Live Server
     "http://127.0.0.1:5500",   # VS Code Live Server IP

@@ -83,14 +83,21 @@ Permite buscar y obtener la lista de colaboradores activos del sistema para el i
 
 ## 📊 2. Clientes & Tablero Kanban (Protegidos)
 
-### 📋 Listar Clientes Propios (Con filtros)
+> [!IMPORTANT]
+> **Políticas de Visibilidad y Permisos (TBAC - Team Based Access Control):**
+> La respuesta de los endpoints de lectura (`/mis-clientes` y `/pipeline`) varía dinámicamente según el rol y grupo del usuario autenticado:
+> *   **`RolUsuario.ADMIN`**: Tiene acceso absoluto. Retorna todos los clientes del sistema.
+> *   **`RolUsuario.SUPERVISOR` o `VENDEDOR` con Grupo**: Retorna los clientes propios del usuario **más los clientes asignados a cualquier otro miembro de su mismo grupo de trabajo** (visibilidad colaborativa).
+> *   **`RolUsuario.VENDEDOR` independiente**: Retorna **únicamente** los clientes creados por o asignados a su propio `usuario_id` (acceso aislado).
+
+### 📋 Listar Clientes (Con filtros y visibilidad dinámica)
 *   **Ruta:** `GET /clientes/mis-clientes`
 *   **Query Params (Opcionales):**
     *   `skip`: int (Paginación, defecto 0)
     *   `limit`: int (Paginación, defecto 100)
-    *   `busqueda`: string (Busca por nombre/email)
+    *   `busqueda`: string (Busca por nombre/email de cliente)
     *   `filtroEstado`: string (`LEAD`, `ACTIVO`, `INACTIVO`, `PERDIDO`)
-    *   `orden`: string (`asc` / `desc`)
+    *   `orden`: string (`asc` / `desc` para ordenar por fecha de creación)
 *   **Respuesta (200 OK):**
     ```json
     {
@@ -107,8 +114,8 @@ Permite buscar y obtener la lista de colaboradores activos del sistema para el i
     }
     ```
 
-### 🗂️ Pipeline Kanban
-Devuelve todos los clientes del vendedor agrupados por estado para renderizar un tablero Kanban visual de inmediato.
+### 🗂️ Pipeline Kanban (Visibilidad dinámica)
+Devuelve todos los clientes del vendedor o de su equipo agrupados por estado para renderizar un tablero Kanban colaborativo.
 *   **Ruta:** `GET /clientes/pipeline`
 *   **Respuesta (200 OK):**
     ```json
@@ -161,6 +168,58 @@ Devuelve todos los clientes del vendedor agrupados por estado para renderizar un
     {
       "estado": "ACTIVO"
     }
+    ```
+
+### 🤖 2.1 Resúmenes Ejecutivos de IA (MongoDB Caching & Gemini Flow)
+Gestiona resúmenes comerciales automáticos del cliente basados en su historial, notas y tareas con Gemini 2.5 Flash.
+
+#### 1. Obtener Resumen Guardado (Lectura Instantánea con Caché)
+Intenta leer el último resumen guardado en MongoDB. Si no existe ningún resumen previo, dispara el modelo de IA para crearlo, lo persiste y lo retorna de inmediato.
+*   **Ruta:** `GET /clientes/{cliente_id}/resumen-ia`
+*   **Respuesta Exitosa (200 OK):**
+    ```json
+    {
+      "cliente_id": 4,
+      "resumen": "### Resumen Ejecutivo de IA\nEl cliente Juan Pérez se encuentra en estado LEAD...",
+      "generado_en": "2026-06-01T19:40:00.000Z",
+      "solicitado_por": {
+        "user_id": 1,
+        "nombre": "Nahuel",
+        "apellido": "Monti"
+      }
+    }
+    ```
+
+#### 2. Forzar Regeneración de Resumen (POST)
+Ignora la caché y re-ejecuta a Gemini para que construya un nuevo resumen fresco en base a la información actualizada (nuevas notas, cambios de Kanban, etc.) y lo guarde cronológicamente.
+*   **Ruta:** `POST /clientes/{cliente_id}/resumen-ia`
+*   **Respuesta Exitosa (200 OK):** Mismo formato que el endpoint anterior.
+
+#### 3. Cargar Historial de Resúmenes (Línea de Tiempo)
+Obtiene todos los resúmenes de IA históricos generados para este cliente en orden cronológico descendente. Ideal para pintar una línea de tiempo del progreso del cliente.
+*   **Ruta:** `GET /clientes/{cliente_id}/resumen-ia/historial`
+*   **Respuesta Exitosa (200 OK):**
+    ```json
+    [
+      {
+        "resumen": "### Resumen de Progreso\nEl cliente avanzó a estado LEAD...",
+        "generado_en": "2026-06-01T19:40:00Z",
+        "solicitado_por": {
+          "user_id": 1,
+          "nombre": "Nahuel",
+          "apellido": "Monti"
+        }
+      },
+      {
+        "resumen": "### Resumen Inicial\nCliente registrado en frío...",
+        "generado_en": "2026-05-28T10:15:00Z",
+        "solicitado_por": {
+          "user_id": 2,
+          "nombre": "Matias",
+          "apellido": "Calabrese"
+        }
+      }
+    ]
     ```
 
 ---
@@ -287,6 +346,14 @@ Para conectar el cliente Socket.IO del frontend al backend, se debe proveer el T
     ```
 > [!IMPORTANT]
 > Si el token es inválido o no se envía, el backend rechazará la conexión inmediatamente por motivos de seguridad.
+
+> [!CAUTION]
+> **⚠️ BUG CRÍTICO DE SESIÓN CRUZADA (Solución en Frontend):**
+> Si un colaborador cierra sesión y otro inicia sesión en la misma pestaña del navegador, el socket seguirá conectado físicamente utilizando el token y la sesión del usuario anterior en el servidor.
+> **El Frontend tiene la obligación absoluta de:**
+> 1. **Al hacer Logout:** Ejecutar de inmediato `socket.disconnect()` para matar físicamente la conexión y limpiar el socket.
+> 2. **Al hacer Login:** Tras guardar el nuevo token, instanciar un nuevo cliente de socket pasando el nuevo token en la propiedad `auth.token`, y llamar explícitamente a `socket.connect()`.
+> *Si no se desconecta físicamente el socket en el logout, el backend seguirá asumiendo que todos los eventos corresponden al usuario que inició sesión primero.*
 
 ---
 
@@ -476,4 +543,187 @@ Carga los mensajes históricos de una conversación específica. Implementa el *
 > [!TIP]
 > **Diseño de UI Frontend sugerido para Historial:**
 > Carga la página 1 al abrir el chat. Si el array de respuesta contiene **exactamente 50 elementos**, significa que hay más páginas disponibles. En ese caso, muestra un botón *"Cargar más"* arriba del chat, y al hacerle clic carga la página `2`, concatenando los mensajes viejos al inicio del panel.
+
+
+---
+
+## 👥 6. Grupos de Trabajo (Teams) & Jerarquía de Roles (Protegidos)
+
+El módulo de Equipos organiza a los vendedores en células comerciales utilizando una arquitectura híbrida sincronizada en caliente con MongoDB para el chat de grupo.
+
+### 👤 A. Registro de Colaboradores con Roles
+Registra a un nuevo colaborador de la empresa.
+*   **Ruta:** `POST /usuarios/register`
+*   **Body:**
+    ```json
+    {
+      "nombre": "Carlos",
+      "apellido": "Monti",
+      "email": "carlos@correo.com",
+      "password": "contraseña_segura",
+      "rol": "SUPERVISOR" // Valores permitidos: 'ADMIN', 'SUPERVISOR', 'VENDEDOR', 'CLIENTE', 'LEAD_WEB'
+    }
+    ```
+*   **Respuesta Exitosa (201 Created):**
+    ```json
+    {
+      "id": 4,
+      "email": "carlos@correo.com",
+      "rol": "SUPERVISOR",
+      "es_activo": true,
+      "nombre": "Carlos",
+      "apellido": "Monti"
+    }
+    ```
+
+---
+
+### 🛡️ B. Endpoints de Grupos de Trabajo (`/grupos`)
+
+#### 1. Crear Grupo de Trabajo (Solo ADMIN)
+Crea un grupo de ventas en MySQL y le inicializa automáticamente una sala de chat grupal en MongoDB vinculada por `grupo_id`.
+*   **Ruta:** `POST /grupos/`
+*   **Body:**
+    ```json
+    {
+      "nombre": "Ventas Latam",
+      "descripcion": "Equipo comercial de LATAM"
+    }
+    ```
+*   **Respuesta Exitosa (201 Created):**
+    ```json
+    {
+      "id": 1,
+      "nombre": "Ventas Latam",
+      "descripcion": "Equipo comercial de LATAM",
+      "creado_en": "2026-06-01T19:40:00Z",
+      "chat_conversation_id": "6a156265d8fa2808a69ad2db",
+      "miembros": []
+    }
+    ```
+
+#### 2. Listar Todos los Grupos (Solo ADMIN)
+Obtiene todos los grupos creados junto con la lista de sus miembros cargados en MySQL.
+*   **Ruta:** `GET /grupos/`
+*   **Respuesta Exitosa (200 OK):** Lista de objetos con el mismo formato que el response de creación.
+
+#### 3. Obtener Mi Equipo (Público para usuarios firmados)
+Retorna la ficha del equipo y la lista de todos los compañeros de trabajo del usuario autenticado de forma instantánea.
+*   **Ruta:** `GET /grupos/mi-equipo`
+*   **Respuesta Exitosa (200 OK):** Ficha de su grupo de ventas.
+*   **Error (404 Not Found):** `{"detail": "No perteneces a ningún grupo de trabajo actualmente"}` si el usuario no tiene `grupo_id`.
+
+#### 4. Obtener Grupo por ID (ADMIN o Miembros del mismo Grupo)
+Retorna la información del grupo especificado.
+*   **Restricción de Seguridad (Vendedores):** Un vendedor común tiene estrictamente prohibido espiar grupos ajenos. Si intenta consultar un ID que no es el suyo, el backend arrojará un error `403 Forbidden`. Los administradores pueden ver cualquiera.
+*   **Ruta:** `GET /grupos/{grupo_id}`
+*   **Respuesta Exitosa (200 OK):** Ficha detallada del grupo.
+
+#### 5. Asignar Colaborador al Grupo (ADMIN o SUPERVISOR del Grupo)
+Asocia a un usuario a un grupo de trabajo en MySQL, lo inyecta de forma atómica en los participantes del chat grupal en MongoDB y gatilla una notificación Socket.IO instantánea.
+*   **Restricción de Seguridad (Supervisores):** Un `SUPERVISOR` únicamente puede asignar colaboradores a su **propio** grupo. Intentar asignar a un grupo ajeno lanzará un `403 Forbidden`.
+*   **Ruta:** `POST /grupos/{grupo_id}/miembros`
+*   **Body (embed):**
+    ```json
+    {
+      "usuario_id": 4
+    }
+    ```
+*   **Respuesta Exitosa (200 OK):**
+    ```json
+    {
+      "mensaje": "Colaborador 'Carlos Monti' asignado al grupo 'Ventas Latam' con éxito",
+      "grupo_id": 1,
+      "usuario": {
+        "user_id": 4,
+        "nombre": "Carlos",
+        "apellido": "Monti",
+        "rol": "SUPERVISOR"
+      }
+    }
+    ```
+
+#### 6. Remover Colaborador del Grupo (ADMIN o SUPERVISOR del Grupo)
+Desasocia a un colaborador de su grupo (colocando su `grupo_id` a `null` en MySQL) y lo remueve atómicamente de la lista de integrantes del chat de MongoDB, emitiendo una notificación push de Sockets.
+*   **Restricción de Seguridad (Supervisores):** Un `SUPERVISOR` solo puede remover miembros de **su propio** grupo de trabajo.
+*   **Ruta:** `DELETE /grupos/{grupo_id}/miembros/{usuario_id}`
+*   **Respuesta Exitosa (200 OK):**
+    ```json
+    {
+      "mensaje": "Colaborador 'Carlos Monti' removido del grupo 'Ventas Latam' con éxito",
+      "grupo_id": 1,
+      "usuario_id": 4
+    }
+    ```
+
+#### 7. Eliminar Grupo de Trabajo (Solo ADMIN)
+Elimina físicamente el grupo en MySQL (los miembros quedan independientes con `grupo_id=null`) y gatilla un pipeline de limpieza en MongoDB borrando la conversación y todos sus buckets de mensajes huérfanos.
+*   **Ruta:** `DELETE /grupos/{grupo_id}`
+*   **Respuesta Exitosa (200 OK):**
+    ```json
+    {
+      "mensaje": "Grupo 'Ventas Latam' eliminado con éxito. Sus miembros han quedado libres e independientes.",
+      "grupo_id": 1
+    }
+    ```
+
+---
+
+### 👤 C. Gestión Integral y Administración de Usuarios (Solo ADMIN)
+
+#### 1. Listar Todos los Usuarios Registrados
+Retorna el listado completo de usuarios registrados en el sistema de manera paginada.
+*   **Ruta:** `GET /usuarios/`
+*   **Query Params (Opcionales):**
+    *   `skip`: int (Paginación, defecto 0)
+    *   `limit`: int (Paginación, defecto 100)
+*   **Respuesta Exitosa (200 OK):**
+    ```json
+    [
+      {
+        "id": 1,
+        "email": "montinahuel@gmail.com",
+        "rol": "ADMIN",
+        "es_activo": true,
+        "nombre": "Nahuel",
+        "apellido": "Monti"
+      },
+      {
+        "id": 2,
+        "email": "matias@correo.com",
+        "rol": "VENDEDOR",
+        "es_activo": true,
+        "nombre": "Matias",
+        "apellido": "Calabrese"
+      }
+    ]
+    ```
+
+#### 2. Modificar Parcialmente un Usuario (PATCH)
+Permite a un Administrador editar cualquier atributo de un colaborador, incluyendo el hasheo automático de contraseña, cambios de roles o estado activo.
+*   **Ruta:** `PATCH /usuarios/{usuario_id}`
+*   **Content-Type:** `application/json`
+*   **Body (Parcial / Opcional):**
+    ```json
+    {
+      "nombre": "Matias Modificado",
+      "rol": "SUPERVISOR",
+      "es_activo": true,
+      "password": "nueva_password_hasheable"
+    }
+    ```
+*   **Automatización de Negocio (Desvinculación en Caliente):**
+    > [!IMPORTANT]
+    > Si un Administrador cambia el rol de un colaborador a uno no comercial (ej: `CLIENTE` o `LEAD_WEB`) o desactiva su cuenta (`es_activo: false`), el backend **removerá automáticamente en caliente** al usuario de su correspondiente grupo de trabajo en MySQL y lo desasociará de los participantes del chat grupal en MongoDB.
+*   **Respuesta Exitosa (200 OK):**
+    ```json
+    {
+      "id": 2,
+      "email": "matias@correo.com",
+      "rol": "SUPERVISOR",
+      "es_activo": true,
+      "nombre": "Matias Modificado",
+      "apellido": "Calabrese"
+    }
+    ```
 

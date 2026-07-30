@@ -20,4 +20,4 @@ COPY . .
 EXPOSE 10000
 
 # 7. Comando de inicio utilizando el puerto dinámico de Render
-CMD ["sh", "-c", "uvicorn main:app_con_socket --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app_con_socket --host 0.0.0.0 --port ${PORT}"]
