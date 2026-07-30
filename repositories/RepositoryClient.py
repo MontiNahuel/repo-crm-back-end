@@ -6,6 +6,8 @@ from schemas.clienteSchema import ClienteCreate, ClienteUpdate
 from models.cambiosClientes import CambioCliente
 from repositories.crud_base import CRUDBase
 from sqlalchemy import desc, func, or_
+from models.usuario import Usuario
+from models.enums import RolUsuario
 
 class ClienteRepository(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
     # 1. Inyectamos la BD solo aquí
@@ -60,6 +62,55 @@ class ClienteRepository(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
                 query = query.order_by(Cliente.creado_en.asc())
             else:
                 query = query.order_by(Cliente.creado_en.desc())
+        total = query.count()
+        clientes = query.offset(skip).limit(limit).all()
+        return total, clientes
+
+    def obtener_clientes_por_visibilidad(
+        self,
+        usuario: Usuario,
+        skip: int = 0,
+        limit: int = 100,
+        busqueda: str = None,
+        filtroEstado: str = None,
+        orden: str = None
+    ):
+        """
+        Obtiene los clientes aplicando las reglas de visibilidad del CRM:
+        - ADMIN: Ve todos los clientes.
+        - VENDEDOR con grupo: Ve clientes de todos los miembros de su grupo de trabajo.
+        - VENDEDOR independiente: Ve únicamente sus clientes propios.
+        """
+        # 1. Si es ADMIN, ve todo
+        if usuario.rol == RolUsuario.ADMIN:
+            query = self.db.query(Cliente)
+        # 2. Si pertenece a un grupo, ve los clientes de su grupo de trabajo
+        elif usuario.grupo_id is not None:
+            query = self.db.query(Cliente).filter(
+                Cliente.usuario_id.in_(
+                    self.db.query(Usuario.id).filter(Usuario.grupo_id == usuario.grupo_id)
+                )
+            )
+        # 3. Si es independiente, ve solo los suyos
+        else:
+            query = self.db.query(Cliente).filter(Cliente.usuario_id == usuario.id)
+
+        # Filtros de búsqueda, estado y orden
+        if busqueda:
+            query = query.filter(
+                or_(
+                    Cliente.nombre.ilike(f"%{busqueda}%"),
+                    Cliente.email.ilike(f"%{busqueda}%")
+                )
+            )
+        if filtroEstado:
+            query = query.filter(Cliente.estado == filtroEstado)
+        if orden:
+            if orden == "asc":
+                query = query.order_by(Cliente.creado_en.asc())
+            else:
+                query = query.order_by(Cliente.creado_en.desc())
+
         total = query.count()
         clientes = query.offset(skip).limit(limit).all()
         return total, clientes

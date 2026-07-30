@@ -65,7 +65,7 @@ class RepositoryChat:
         new_conv["id"] = str(result.inserted_id)
         return new_conv
 
-    async def create_group_conversation(self, name: str, participants: List[dict]) -> dict:
+    async def create_group_conversation(self, name: str, participants: List[dict], grupo_id: Optional[int] = None) -> dict:
         """
         Crea una nueva conversación grupal en MongoDB con múltiples participantes.
         'participants' es una lista de dicts: { "user_id": int, "nombre": str, "apellido": str, "rol": str }
@@ -75,6 +75,7 @@ class RepositoryChat:
             "name": name,
             "participants": participants,
             "type": "group",
+            "grupo_id": grupo_id,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
             "last_message": None,
@@ -84,6 +85,22 @@ class RepositoryChat:
         new_conv["_id"] = result.inserted_id
         new_conv["id"] = str(result.inserted_id)
         return new_conv
+
+    async def add_participant_to_group_conversation(self, grupo_id: int, user: dict) -> None:
+        """Agrega un participante de forma atómica al chat de equipo en MongoDB."""
+        db = self.db
+        await db["conversations"].update_one(
+            {"type": "group", "grupo_id": grupo_id},
+            {"$addToSet": {"participants": user}}
+        )
+
+    async def remove_participant_from_group_conversation(self, grupo_id: int, user_id: int) -> None:
+        """Remueve a un participante de forma atómica del chat de equipo en MongoDB."""
+        db = self.db
+        await db["conversations"].update_one(
+            {"type": "group", "grupo_id": grupo_id},
+            {"$pull": {"participants": {"user_id": user_id}}}
+        )
 
     async def update_last_read(self, conversation_id: str, user_id: int) -> datetime:
         """
