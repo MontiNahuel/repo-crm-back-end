@@ -24,6 +24,14 @@ class UsuarioUpdate(BaseModel):
     is_active: Optional[bool] = None
     rol: Optional[RolUsuario] = None
 
+class UsuarioAdminUpdate(BaseModel):
+    nombre: Optional[str] = None
+    apellido: Optional[str] = None
+    email: Optional[EmailStr] = None
+    rol: Optional[RolUsuario] = None
+    es_activo: Optional[bool] = None
+    password: Optional[str] = None
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str

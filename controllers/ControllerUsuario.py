@@ -94,3 +94,5 @@ def listar_colaboradores(
     Útil para poblar el buscador de contactos (estilo Microsoft Teams) en el chat.
     """
     return servicio.obtener_directorio_colaboradores(busqueda=busqueda)
+
+

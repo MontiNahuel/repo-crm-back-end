@@ -1,5 +1,6 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+# pyrefly: ignore [missing-import]
 import jwt
 from sqlalchemy.orm import Session
 from core.security import SECRET_KEY, ALGORITHM
@@ -60,4 +61,19 @@ def requerir_rol_admin(
         )
     
     # Si es ADMIN, lo dejamos pasar al endpoint
+    return usuario_actual
+
+
+def requerir_rol_supervisor_o_admin(
+    usuario_actual: Usuario = Depends(obtener_usuario_actual)
+):
+    """
+    Verifica que el usuario autenticado sea ADMIN o SUPERVISOR.
+    Si no lo es, lanza un error 403 Forbidden.
+    """
+    if usuario_actual.rol not in [RolUsuario.ADMIN, RolUsuario.SUPERVISOR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes los privilegios necesarios (Admin o Supervisor) para realizar esta acción."
+        )
     return usuario_actual

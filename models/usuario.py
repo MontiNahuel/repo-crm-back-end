@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Boolean, Enum as SQLEnum, ForeignKey
 from sqlalchemy.orm import relationship
 from database import Base
 from models.enums import RolUsuario
@@ -13,8 +13,9 @@ class Usuario(Base):
     password = Column(String(100))
     rol = Column(SQLEnum(RolUsuario), default=RolUsuario.LEAD_WEB, nullable=False)
     es_activo = Column(Boolean, default=True)
+    grupo_id = Column(Integer, ForeignKey("grupos.id", ondelete="SET NULL"), nullable=True)
 
     clientes = relationship("Cliente", back_populates="creador")
     cambiosClientes = relationship("CambioCliente", back_populates="usuario")
     tareas = relationship("Tarea", back_populates="usuario")
-    
+    grupo = relationship("Grupo", back_populates="miembros")
