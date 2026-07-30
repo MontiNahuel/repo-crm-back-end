@@ -33,10 +33,10 @@ def upgrade() -> None:
     op.create_index(op.f('ix_grupos_nombre'), 'grupos', ['nombre'], unique=True)
 
     # 2. Modificaciones auto-detectadas
-    op.drop_index('ix_cambiosClientes_id', table_name='cambiosclientes')
-    op.create_index(op.f('ix_cambiosclientes_id'), 'cambiosclientes', ['id'], unique=False)
-    op.drop_index('sku', table_name='productos')
-    op.create_index(op.f('ix_productos_sku'), 'productos', ['sku'], unique=True)
+    # op.drop_index('ix_cambiosClientes_id', table_name='cambiosclientes')
+    # op.create_index(op.f('ix_cambiosclientes_id'), 'cambiosclientes', ['id'], unique=False)
+    # op.drop_index('sku', table_name='productos')
+    # op.create_index(op.f('ix_productos_sku'), 'productos', ['sku'], unique=True)
     op.add_column('usuarios', sa.Column('grupo_id', sa.Integer(), nullable=True))
     op.create_foreign_key(None, 'usuarios', 'grupos', ['grupo_id'], ['id'], ondelete='SET NULL')
     # ### end Alembic commands ###
